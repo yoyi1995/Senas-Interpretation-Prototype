@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: senas-prototype
+    env: python
+    buildCommand: pip install -r backend/banken-flask/requirements.txt
+    startCommand: cd backend/banken-flask && python app.py
+    httpPort: 5000

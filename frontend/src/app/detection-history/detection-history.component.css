@@ -1,0 +1,13 @@
+.detection-history {
+    padding: 20px;
+  }
+  
+  ul {
+    list-style-type: none; /* Quitar viñetas */
+    padding: 0;
+  }
+  
+  li {
+    font-size: 16px;
+  }
+  

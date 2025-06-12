@@ -1,0 +1,26 @@
+<div class="app-container">
+    <!-- Barra de Navegación a la Izquierda -->
+    <div class="side-panel">
+        <h2>Navegación</h2>
+        <button (click)="showSection('camera')">Interpretar Seña</button>
+        <button (click)="showSection('alphabet')">Ver Abecedario</button>
+    </div>
+
+    <!-- Área de Contenido a la Derecha -->
+    <div class="content-panel">
+        <h1>Lenguaje de Señas</h1>
+
+        <!-- Componente de Cámara / Interpretación de Seña -->
+        <app-video-feed *ngIf="activeSection === 'camera'"></app-video-feed>
+
+        <!-- Componente de Guía de Abecedario -->
+        <app-alphabet-guide *ngIf="activeSection === 'alphabet'"></app-alphabet-guide>
+    </div>
+</div>
+
+
+
+
+
+
+<!--<router-outlet />-->

@@ -1,0 +1,32 @@
+<div class="main-container">
+  <h1 class="title">Sistema de Reconocimiento de Lenguaje de Señas en Tiempo Real</h1>
+  
+  <div class="content">
+    <!-- Contenedor de Botones a la izquierda -->
+    <div class="button-container">
+      <button (click)="connectToServer()">Conectar al Servidor</button>
+      <button (click)="onStartCamera()" [disabled]="loading">Iniciar Cámara</button>
+      <button (click)="stopCamera()" [disabled]="!stream">Detener Cámara</button>
+      <button (click)="confirmLetter()" [disabled]="!mensaje">Confirmar Letra</button>
+      <button (click)="confirmWord()" [disabled]="!palabra">Reproducir Palabra</button>
+
+
+
+    </div>
+
+    <!-- Contenedor de Video en el centro -->
+    <div class="video-container">
+      <video #videoElement autoplay></video>
+      <canvas #canvasElement></canvas>
+    </div>
+
+    <!-- Contenedor de Información a la derecha -->
+    <div class="info-container">
+      <div class="word-display">
+        <p>Palabra formada: {{ palabra }}</p>
+      </div>
+      <p class="detection-message">{{ mensaje }}</p> <!-- Mostrar la letra detectada -->
+    </div>
+  </div>
+</div>
+

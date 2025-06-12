@@ -1,0 +1,25 @@
+<div class="alphabet-guide">
+    <h2>Guía de Abecedario en Señas</h2>
+    
+    <!-- Cuadro de texto para ingresar una palabra -->
+    <input
+      type="text"
+      [(ngModel)]="word"
+      placeholder="Escribe una palabra"
+      (input)="generateSignImages()"
+      class="word-input"
+    />
+    
+    <div *ngIf="signImages.length > 0" class="word-signs">
+      <h3>Traducción en señas:</h3>
+      <div class="letter-container" *ngFor="let letter of signImages">
+        <img [src]="getLetterImage(letter)" [alt]="'Seña de la letra ' + letter" />
+        <p>{{ letter }}</p>
+      </div>
+    </div>
+  </div>
+  
+  
+  
+  
+  

@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 # Cargar el modelo entrenado
-model = tf.keras.models.load_model('C:/Users/YOYI/Documents/banken-flask/modelo_landmarks.keras')
+model = tf.keras.models.load_model('./backend/modelo_landmarks.keras')
 
 def detect_letter(landmarks):
     # Convertir landmarks a un array de NumPy y asegurarse de que tenga la forma correcta

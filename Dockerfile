@@ -7,10 +7,15 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY . .
 
-# Instalar dependencias de Python
+# 1. Copiar SOLO requirements.txt primero (para cachear dependencias)
+COPY backend/requirements.txt .
+
+# 2. Instalar dependencias
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "backend/app.py"]  # Ajusta a tu archivo principal
+# 3. Copiar el resto del código
+COPY . .
+
+CMD ["python", "backend/app.py"]

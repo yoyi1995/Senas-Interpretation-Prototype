@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# 1. Instalar dependencias del sistema
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
     python3-opencv \
     libgl1 \
@@ -8,16 +8,15 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# 2. Copiar requirements.txt primero
+# Copiar requirements.txt y modelo
 COPY backend/requirements.txt .
+COPY backend/modelo_landmarks.keras ./backend/
 
-# 3. Instalar dependencias (formato corregido)
+# Instalar dependencias
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir \
-    --upgrade-strategy eager \
-    -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt
 
-# 4. Copiar el resto del código
+# Copiar el resto del código
 COPY . .
 
 CMD ["python", "backend/app.py"]

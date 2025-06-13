@@ -39,4 +39,4 @@ def detect():
         return jsonify({'error': f'Error procesando los landmarks: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(host='localhost', port=5001)
+    app.run(host='0.0.0.0', port=5001)  # ¡Cambia 'localhost' por '0.0.0.0'!

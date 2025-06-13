@@ -1,4 +1,3 @@
---python-version 3.11
 absl-py==2.1.0
 asttokens==3.0.0
 astunparse==1.6.3

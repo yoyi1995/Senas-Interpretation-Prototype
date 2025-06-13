@@ -28,7 +28,7 @@ idna==3.10
 ipython==8.30.0
 itsdangerous==2.2.0
 jax==0.4.33
-jaxlib==0.4.33
+jax
 jedi==0.19.2
 Jinja2==3.1.4
 joblib==1.4.2

@@ -1,14 +1,16 @@
-# Usa la imagen oficial de Python 3.10
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-# Crea y selecciona el directorio de trabajo
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    python3-opencv \
+    libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-
-# Copia TODO tu proyecto al contenedor
 COPY . .
 
-# Instala dependencias de Python
+# Instalar dependencias de Python
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Comando para ejecutar tu aplicación (ajusta "app.py" al nombre de tu archivo principal)
-CMD ["python", "backend/app.py"]
+CMD ["python", "backend/app.py"]  # Ajusta a tu archivo principal

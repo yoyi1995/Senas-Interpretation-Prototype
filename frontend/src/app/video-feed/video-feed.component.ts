@@ -33,12 +33,15 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   }
 
   // Conexión WebSocket (pública para el template)
-  public connectToServer() {
+   public connectToServer() {
+    if (!isPlatformBrowser(this.platformId)) return;
+    
     this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
       path: '/socket.io/',
       transports: ['websocket'],
       reconnectionAttempts: 5,
-      reconnectionDelay: 1000
+      reconnectionDelay: 1000,
+      autoConnect: true
     });
 
     this.socket.on('connect', () => {

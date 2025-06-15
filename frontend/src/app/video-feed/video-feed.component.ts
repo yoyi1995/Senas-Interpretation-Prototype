@@ -1,4 +1,5 @@
-import { Component, ViewChild, ElementRef, OnInit, OnDestroy } from '@angular/core';
+import { Component, ViewChild, ElementRef, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common'; // Añade esta importación
 import { io, Socket } from 'socket.io-client';
 
 declare var Hands: any;
@@ -24,26 +25,25 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   public detectionTimeout: any = null;
   public detectionLetter: string = '';
 
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {} // Añade esta línea
+
   ngOnInit() {
-    this.connectToServer();
+    if (isPlatformBrowser(this.platformId)) { // Modifica esta línea
+      this.connectToServer();
+    }
   }
 
-  ngOnDestroy() {
-    this.cleanupResources();
-  }
-
-  // Conexión WebSocket (pública para el template)
-   public connectToServer() {
-    if (!isPlatformBrowser(this.platformId)) return;
+  public connectToServer() {
+    if (!isPlatformBrowser(this.platformId)) return; // Añade esta verificación
     
     this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
       path: '/socket.io/',
       transports: ['websocket'],
       reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      autoConnect: true
+      reconnectionDelay: 1000
     });
 
+    // Resto del método permanece igual
     this.socket.on('connect', () => {
       console.log('✅ Conectado al servidor de señas');
     });

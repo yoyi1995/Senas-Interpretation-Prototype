@@ -34,12 +34,15 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
 
   // Conexión WebSocket optimizada
   public connectToServer() {
-    this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
-      path: '/socket.io/',
-      transports: ['websocket'],
-      reconnectionAttempts: 3,
-      timeout: 20000,
-      secure: true
+   this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
+  path: '/socket.io/',
+  transports: ['websocket'],
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+  withCredentials: true,
+  extraHeaders: {
+    "Access-Control-Allow-Origin": "https://patient-exploration-front.up.railway.app"
+  }
     });
 
     this.socket.on('connect', () => {

@@ -25,15 +25,12 @@ export class VideoFeedComponent {
   private detectionLetter: string = '';  // Almacena la última letra detectada
 
   // Conecta al servidor de Socket.IO
- // En tu servicio o componente
 connectToServer() {
   this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
-    // Configuración esencial:
     transports: ['websocket'],
     upgrade: false,
     secure: true,
     rejectUnauthorized: false,
-    // Timeouts aumentados:
     pingTimeout: 60000,
     pingInterval: 25000
   });
@@ -44,10 +41,22 @@ connectToServer() {
 
   this.socket.on('connect_error', (err) => {
     console.error('❌ Error de conexión:', err.message);
-    // Reconexión automática después de 5 segundos
     setTimeout(() => this.connectToServer(), 5000);
   });
-}
+
+  // Este evento DEBE estar DENTRO del método connectToServer
+  this.socket.on('detected_letter', (letter: string) => {
+    this.mensaje = `Letra detectada: ${letter}`;
+    this.detectionLetter = letter;
+
+    if (this.detectionTimeout) {
+      clearTimeout(this.detectionTimeout);
+    }
+
+    this.detectionTimeout = setTimeout(() => {
+      this.addLetterToWord(letter);
+    }, 298);
+  });
 
     // Escucha el evento de detección de letra desde el servidor
     this.socket.on('detected_letter', (letter: string) => {

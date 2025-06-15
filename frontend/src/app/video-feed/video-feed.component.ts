@@ -21,8 +21,8 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   public hands: any;
   public camera: any;
   public loading: boolean = false;
-  private detectionTimeout: any = null;
-  private detectionLetter: string = '';
+  public detectionTimeout: any = null;
+  public detectionLetter: string = '';
 
   ngOnInit() {
     this.connectToServer();
@@ -56,7 +56,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     });
   }
 
-  private handleDetectedLetter(letter: string) {
+  public handleDetectedLetter(letter: string) {
     this.mensaje = `Letra detectada: ${letter}`;
     this.detectionLetter = letter;
     
@@ -214,7 +214,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: any[], canvas: HTMLCanvasElement) {
+  public drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: any[], canvas: HTMLCanvasElement) {
     const connections = [
       [0, 1], [1, 2], [2, 3], [3, 4],
       [0, 5], [5, 6], [6, 7], [7, 8],

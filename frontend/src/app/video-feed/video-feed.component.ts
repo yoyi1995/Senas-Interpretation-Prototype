@@ -25,23 +25,27 @@ export class VideoFeedComponent {
   private detectionLetter: string = '';  // Almacena la última letra detectada
 
   // Conecta al servidor de Socket.IO
+// Configuración CORRECTA para Socket.io v4+
 connectToServer() {
   this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
-    transports: ['websocket'],
-    upgrade: false,
-    secure: true,
-    rejectUnauthorized: false,
-    pingTimeout: 60000,
-    pingInterval: 25000
-  });
-
-  this.socket.on('connect', () => {
-    console.log('✅ Conexión WebSocket establecida');
-  });
-
-  this.socket.on('connect_error', (err) => {
-    console.error('❌ Error de conexión:', err.message);
-    setTimeout(() => this.connectToServer(), 5000);
+    // Opciones actualizadas:
+    transportOptions: {
+      polling: {
+        extraHeaders: {
+          'Authorization': 'Bearer your-token' // Si necesitas autenticación
+        }
+      }
+    },
+    transports: ['websocket'], // Solo WebSocket
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 60000, // Reemplaza pingTimeout
+    autoConnect: true,
+    auth: {
+      token: 'your-auth-token' // Si necesitas autenticación
+    }
   });
 
   // Este evento DEBE estar DENTRO del método connectToServer

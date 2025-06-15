@@ -1,5 +1,5 @@
 import { Component, ViewChild, ElementRef, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common'; // Añade esta importación
+import { isPlatformBrowser } from '@angular/common';
 import { io, Socket } from 'socket.io-client';
 
 declare var Hands: any;
@@ -25,25 +25,29 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   public detectionTimeout: any = null;
   public detectionLetter: string = '';
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {} // Añade esta línea
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
-  ngOnInit() {
-    if (isPlatformBrowser(this.platformId)) { // Modifica esta línea
+  ngOnInit(): void {
+    if (isPlatformBrowser(this.platformId)) {
       this.connectToServer();
     }
   }
 
-  public connectToServer() {
-    if (!isPlatformBrowser(this.platformId)) return; // Añade esta verificación
+  ngOnDestroy(): void {
+    this.cleanupResources();
+  }
+
+  public connectToServer(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     
     this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
       path: '/socket.io/',
       transports: ['websocket'],
       reconnectionAttempts: 5,
-      reconnectionDelay: 1000
+      reconnectionDelay: 1000,
+      autoConnect: true
     });
 
-    // Resto del método permanece igual
     this.socket.on('connect', () => {
       console.log('✅ Conectado al servidor de señas');
     });
@@ -59,7 +63,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     });
   }
 
-  public handleDetectedLetter(letter: string) {
+  public handleDetectedLetter(letter: string): void {
     this.mensaje = `Letra detectada: ${letter}`;
     this.detectionLetter = letter;
     
@@ -69,7 +73,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }, 300);
   }
 
-  public addLetterToWord(letter: string) {
+  public addLetterToWord(letter: string): void {
     if (this.palabra.length === 0 || this.palabra.slice(-1) !== letter) {
       this.palabra += letter;
     }
@@ -77,21 +81,20 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     this.detectionLetter = '';
   }
 
-  // Métodos UI públicos
-  public confirmLetter() {
+  public confirmLetter(): void {
     if (this.detectionLetter) {
       this.addLetterToWord(this.detectionLetter);
     }
   }
 
-  public confirmWord() {
+  public confirmWord(): void {
     if (this.palabra) {
       this.speakWord(this.palabra);
     }
   }
 
-  public speakWord(text: string) {
-    if ('speechSynthesis' in window) {
+  public speakWord(text: string): void {
+    if (isPlatformBrowser(this.platformId) && 'speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'es-ES';
       utterance.rate = 1;
@@ -99,8 +102,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Gestión de cámara
-  public async onStartCamera() {
+  public async onStartCamera(): Promise<void> {
     try {
       await this.initCamera();
     } catch (error) {
@@ -109,14 +111,15 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  public async initCamera() {
+  public async initCamera(): Promise<void> {
     this.loading = true;
     try {
       await this.stopCamera();
       this.stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           width: 640, 
-          height: 480 
+          height: 480,
+          facingMode: 'user'
         } 
       });
       this.videoElement.nativeElement.srcObject = this.stream;
@@ -126,7 +129,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  public async stopCamera() {
+  public async stopCamera(): Promise<void> {
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
@@ -134,7 +137,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     await this.cleanupMediaPipe();
   }
 
-  public async cleanupMediaPipe() {
+  public async cleanupMediaPipe(): Promise<void> {
     if (this.hands) {
       try {
         this.hands.close();
@@ -153,15 +156,16 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  public cleanupResources() {
+  public cleanupResources(): void {
     this.stopCamera();
     if (this.socket?.connected) {
       this.socket.disconnect();
     }
   }
 
-  // MediaPipe Hands
-  public initMediaPipeHands() {
+  public initMediaPipeHands(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+
     this.hands = new Hands({
       locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
     });
@@ -191,18 +195,22 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     this.camera.start();
   }
 
-  public processLandmarks(landmarksArray: any[]) {
-    const landmarks = landmarksArray[0]; // Solo primera mano
+  public processLandmarks(landmarksArray: any[]): void {
+    const landmarks = landmarksArray[0];
     const landmarkData = landmarks.map((landmark: any) => [
       landmark.x,
       landmark.y,
       landmark.z
     ]).flat();
 
-    this.socket.emit('hand_landmarks', landmarkData);
+    try {
+      this.socket.emit('hand_landmarks', landmarkData);
+    } catch (error) {
+      console.error('Error enviando landmarks:', error);
+    }
   }
 
-  public drawHands(results: any) {
+  public drawHands(results: any): void {
     const canvas = this.canvasElement.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -217,7 +225,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  public drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: any[], canvas: HTMLCanvasElement) {
+  public drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: any[], canvas: HTMLCanvasElement): void {
     const connections = [
       [0, 1], [1, 2], [2, 3], [3, 4],
       [0, 5], [5, 6], [6, 7], [7, 8],
@@ -230,14 +238,12 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     ctx.strokeStyle = 'red';
     ctx.lineWidth = 2;
 
-    // Dibuja puntos
     landmarks.forEach((landmark: any) => {
       ctx.beginPath();
       ctx.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
       ctx.fill();
     });
 
-    // Dibuja conexiones
     ctx.beginPath();
     connections.forEach(([start, end]) => {
       ctx.moveTo(landmarks[start].x * canvas.width, landmarks[start].y * canvas.height);

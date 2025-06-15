@@ -33,12 +33,12 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private initializeApp() {
+  public initializeApp() {
     this.setupSocketConnection();
     this.checkMediaPermissions();
   }
 
-  private setupSocketConnection() {
+  public setupSocketConnection() {
     if (typeof window === 'undefined') return;
 
     this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
@@ -68,13 +68,13 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private shouldConnectToSocket(): boolean {
+  public shouldConnectToSocket(): boolean {
     return isPlatformBrowser(this.platformId) && 
            typeof window !== 'undefined' &&
            !this.socket?.connected;
   }
 
-  private checkMediaPermissions() {
+  public checkMediaPermissions() {
     if (isPlatformBrowser(this.platformId)) {
       navigator.permissions.query({ name: 'camera' as any })
         .then(permissionStatus => {
@@ -125,7 +125,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private speakWord(text: string) {
+  public speakWord(text: string) {
     if (isPlatformBrowser(this.platformId) && 'speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'es-ES';
@@ -166,7 +166,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     await this.cleanupMediaPipe();
   }
 
-  private async cleanupMediaPipe() {
+  public async cleanupMediaPipe() {
     if (this.hands) {
       try {
         this.hands.close();
@@ -199,7 +199,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   }
 
   // MediaPipe Hands
-  private initMediaPipeHands() {
+  public initMediaPipeHands() {
     if (!isPlatformBrowser(this.platformId)) return;
 
     this.hands = new Hands({
@@ -220,7 +220,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     this.setupCamera();
   }
 
-  private setupCamera() {
+  public setupCamera() {
     this.camera = new Camera(this.videoElement.nativeElement, {
       onFrame: async () => {
         try {
@@ -236,14 +236,14 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     this.camera.start();
   }
 
-  private processHandResults(results: any) {
+  public processHandResults(results: any) {
     this.drawHands(results);
     if (results.multiHandLandmarks && this.socket?.connected) {
       this.processLandmarks(results.multiHandLandmarks);
     }
   }
 
-  private processLandmarks(landmarksArray: any[]) {
+  public processLandmarks(landmarksArray: any[]) {
     const landmarks = landmarksArray[0]; // Solo procesa la primera mano
     const landmarkData = landmarks.map((landmark: any) => [
       landmark.x,
@@ -258,7 +258,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private drawHands(results: any) {
+  public drawHands(results: any) {
     const canvas = this.canvasElement.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -273,7 +273,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: any[], canvas: HTMLCanvasElement) {
+  public drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: any[], canvas: HTMLCanvasElement) {
     const connections = [
       [0, 1], [1, 2], [2, 3], [3, 4],       // Pulgar
       [0, 5], [5, 6], [6, 7], [7, 8],       // Índice

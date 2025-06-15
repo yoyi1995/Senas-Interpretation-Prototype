@@ -25,42 +25,37 @@ export class VideoFeedComponent {
   private detectionLetter: string = '';  // Almacena la última letra detectada
 
   // Conecta al servidor de Socket.IO
-// Configuración CORRECTA para Socket.io v4+
 connectToServer() {
+  // 1. Configuración optimizada para Railway
   this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
-    // Opciones actualizadas:
-    transportOptions: {
-      polling: {
-        extraHeaders: {
-          'Authorization': 'Bearer your-token' // Si necesitas autenticación
-        }
-      }
-    },
-    transports: ['websocket'], // Solo WebSocket
-    reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    timeout: 60000, // Reemplaza pingTimeout
-    autoConnect: true,
-    auth: {
-      token: 'your-auth-token' // Si necesitas autenticación
-    }
+    path: '/socket.io/',
+    transports: ['websocket'],
+    reconnectionAttempts: 3,
+    timeout: 20000,
+    secure: true
   });
 
-  // Este evento DEBE estar DENTRO del método connectToServer
+  // 2. Manejadores de eventos únicos
+  this.socket.on('connect', () => {
+    console.log('✅ Conectado al servidor de señas');
+  });
+
   this.socket.on('detected_letter', (letter: string) => {
+    if (!letter) return;
+    console.log('🔠 Letra recibida:', letter);
     this.mensaje = `Letra detectada: ${letter}`;
     this.detectionLetter = letter;
-
-    if (this.detectionTimeout) {
-      clearTimeout(this.detectionTimeout);
-    }
-
+    
+    clearTimeout(this.detectionTimeout);
     this.detectionTimeout = setTimeout(() => {
       this.addLetterToWord(letter);
-    }, 298);
+    }, 300);
   });
+
+  this.socket.on('connect_error', (err) => {
+    console.error('🚨 Error de conexión:', err.message);
+  });
+}
 
     // Escucha el evento de detección de letra desde el servidor
     this.socket.on('detected_letter', (letter: string) => {

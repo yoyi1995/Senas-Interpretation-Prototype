@@ -15,14 +15,14 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   @ViewChild('canvasElement') canvasElement!: ElementRef<HTMLCanvasElement>;
   
   public stream: MediaStream | null = null;
-  private socket!: Socket;
+  public socket!: Socket;
   mensaje: string = '';
   palabra: string = '';
-  private hands: any;
-  private camera: any;
+  public hands: any;
+  public camera: any;
   loading: boolean = false;
-  private detectionTimeout: any = null;
-  private detectionLetter: string = '';
+  public detectionTimeout: any = null;
+  public detectionLetter: string = '';
 
   ngOnInit() {
     this.connectToServer();
@@ -33,7 +33,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   }
 
   // Conexión WebSocket optimizada
-  private connectToServer() {
+  public connectToServer() {
     this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
       path: '/socket.io/',
       transports: ['websocket'],
@@ -57,7 +57,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     });
   }
 
-  private handleDetectedLetter(letter: string) {
+  public handleDetectedLetter(letter: string) {
     this.mensaje = `Letra detectada: ${letter}`;
     this.detectionLetter = letter;
     
@@ -67,7 +67,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }, 300);
   }
 
-  private addLetterToWord(letter: string) {
+  public addLetterToWord(letter: string) {
     if (this.palabra.length === 0 || this.palabra.slice(-1) !== letter) {
       this.palabra += letter;
     }
@@ -88,7 +88,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private speakWord(text: string) {
+  public speakWord(text: string) {
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'es-ES';
@@ -107,7 +107,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async initCamera() {
+  public async initCamera() {
     this.loading = true;
     try {
       this.stopCamera();
@@ -124,7 +124,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private stopCamera() {
+  public stopCamera() {
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
@@ -132,7 +132,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     this.cleanupMediaPipe();
   }
 
-  private cleanupMediaPipe() {
+  public cleanupMediaPipe() {
     if (this.hands) {
       this.hands.close();
       this.hands = null;
@@ -143,7 +143,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private cleanupResources() {
+  public cleanupResources() {
     this.stopCamera();
     if (this.socket) {
       this.socket.disconnect();
@@ -151,7 +151,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   }
 
   // MediaPipe Hands
-  private initMediaPipeHands() {
+  public initMediaPipeHands() {
     this.hands = new Hands({
       locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
     });
@@ -181,7 +181,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     this.camera.start();
   }
 
-  private processLandmarks(landmarksArray: any[]) {
+  public processLandmarks(landmarksArray: any[]) {
     for (const landmarks of landmarksArray) {
       const landmarkData = landmarks.flatMap((landmark: any) => [
         landmark.x,
@@ -192,7 +192,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private drawHands(results: any) {
+  public drawHands(results: any) {
     const canvas = this.canvasElement.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -207,7 +207,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private drawLandmarks(ctx: CanvasRenderingContext2D, landmarksArray: any[], canvas: HTMLCanvasElement) {
+  public drawLandmarks(ctx: CanvasRenderingContext2D, landmarksArray: any[], canvas: HTMLCanvasElement) {
     const connections = [
       [0, 1], [1, 2], [2, 3], [3, 4],
       [0, 5], [5, 6], [6, 7], [7, 8],

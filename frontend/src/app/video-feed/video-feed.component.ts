@@ -25,25 +25,29 @@ export class VideoFeedComponent {
   private detectionLetter: string = '';  // Almacena la última letra detectada
 
   // Conecta al servidor de Socket.IO
-  // Cambia esta línea en el método connectToServer():
+ // En tu servicio o componente
 connectToServer() {
-  // Reemplaza localhost por tu URL de producción
   this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
-    transports: ['websocket'], // Obligatorio en producción
-    secure: true,              // Usa HTTPS
-    withCredentials: true,
-    rejectUnauthorized: false  // Necesario en algunos entornos
+    // Configuración esencial:
+    transports: ['websocket'],
+    upgrade: false,
+    secure: true,
+    rejectUnauthorized: false,
+    // Timeouts aumentados:
+    pingTimeout: 60000,
+    pingInterval: 25000
   });
-// 2. Manejadores de eventos de conexión (AQUÍ VAN LOS EVENTOS QUE PREGUNTAS)
+
   this.socket.on('connect', () => {
-    console.log('✅ Conectado al servidor Socket.io');
-    // Puedes agregar aquí lógica adicional al conectarse
+    console.log('✅ Conexión WebSocket establecida');
   });
 
   this.socket.on('connect_error', (err) => {
     console.error('❌ Error de conexión:', err.message);
-    // Puedes mostrar un mensaje al usuario aquí si lo deseas
+    // Reconexión automática después de 5 segundos
+    setTimeout(() => this.connectToServer(), 5000);
   });
+}
 
     // Escucha el evento de detección de letra desde el servidor
     this.socket.on('detected_letter', (letter: string) => {

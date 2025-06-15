@@ -87,7 +87,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private speakWord(text: string) {
+  public speakWord(text: string) {
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'es-ES';
@@ -106,7 +106,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async initCamera() {
+  public async initCamera() {
     this.loading = true;
     try {
       await this.stopCamera();
@@ -123,7 +123,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async stopCamera() {
+  public async stopCamera() {
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
@@ -131,7 +131,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     await this.cleanupMediaPipe();
   }
 
-  private async cleanupMediaPipe() {
+  public async cleanupMediaPipe() {
     if (this.hands) {
       try {
         this.hands.close();
@@ -150,7 +150,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private cleanupResources() {
+  public cleanupResources() {
     this.stopCamera();
     if (this.socket?.connected) {
       this.socket.disconnect();
@@ -158,7 +158,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   }
 
   // MediaPipe Hands
-  private initMediaPipeHands() {
+  public initMediaPipeHands() {
     this.hands = new Hands({
       locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
     });
@@ -188,7 +188,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     this.camera.start();
   }
 
-  private processLandmarks(landmarksArray: any[]) {
+  public processLandmarks(landmarksArray: any[]) {
     const landmarks = landmarksArray[0]; // Solo primera mano
     const landmarkData = landmarks.map((landmark: any) => [
       landmark.x,
@@ -199,7 +199,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     this.socket.emit('hand_landmarks', landmarkData);
   }
 
-  private drawHands(results: any) {
+  public drawHands(results: any) {
     const canvas = this.canvasElement.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

@@ -1,78 +1,52 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
+const socketIo = require('socket.io');
 const cors = require('cors');
 const axios = require('axios');
 
-// 1. Configuración inicial
 const app = express();
 const server = http.createServer(app);
-const FRONTEND_URL = 'https://patient-exploration-front.up.railway.app';
-const BACKEND_URL = 'https://senas-interpretation-prototype-production.up.railway.app:5001';
 
-// 2. Middleware CORS simplificado
+// Configuración de CORS con dominio de Railway
 app.use(cors({
-  origin: FRONTEND_URL,
-  credentials: true
+  origin: "https://patient-exploration-front.up.railway.app",  // Frontend desplegado
+  methods: ["GET", "POST"]
 }));
+app.use(express.json());
 
-// 3. Configuración crítica de Socket.IO
-const io = new Server(server, {
+// Puerto dinámico para Railway
+const PORT = process.env.PORT || 3000;
+
+// URL del backend desde variable de entorno
+const BACKEND_URL = process.env.BACKEND_URL || "http://senas-interpretation-prototype-production.up.railway.app:5001";
+
+const io = socketIo(server, {
   cors: {
-    origin: FRONTEND_URL,
+    origin: "https://patient-exploration-front.up.railway.app", 
     methods: ["GET", "POST"]
-  },
-  transports: ['websocket'],
-  pingTimeout: 60000,
-  pingInterval: 25000,
-  // Añadir estas opciones clave:
-  cookie: false,
-  serveClient: false,
-  allowEIO3: true,
-  allowUpgrades: false,
-  perMessageDeflate: false,
-  httpCompression: false
+  }
 });
 
-// 4. Endpoint de salud
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK',
-    websockets: io.engine.clientsCount 
-  });
-});
-
-// 5. Lógica de WebSockets (simplificada)
 io.on('connection', (socket) => {
-  console.log('🔌 Cliente conectado:', socket.id);
+  console.log('Cliente conectado');
 
-  socket.on('hand_landmarks', async (landmarks, callback) => {
+  socket.on('hand_landmarks', async (landmarks) => {
     try {
-      console.log('📡 Landmarks recibidos:', landmarks.length);
-      
-      const response = await axios.post(`${BACKEND_URL}/detect`, { 
-        landmarks 
-      }, { 
-        timeout: 5000 
+      const response = await axios.post(`${BACKEND_URL}/detect`, {
+        landmarks: landmarks
       });
-
       socket.emit('detected_letter', response.data.predicted_letter);
-      callback({ status: 'success' });
     } catch (error) {
-      console.error('⚠️ Error:', error.message);
-      callback({ status: 'error', error: error.message });
+      console.error('Error al procesar los landmarks:', error);
+      socket.emit('error', 'Error procesando los landmarks');
     }
   });
 
   socket.on('disconnect', () => {
-    console.log('❌ Cliente desconectado:', socket.id);
+    console.log('Cliente desconectado');
   });
 });
 
-// 6. Iniciar servidor
-const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-  console.log(`🚀 Servidor en puerto ${PORT}`);
-  console.log(`🟢 Socket.IO: /socket.io/`);
-  console.log(`🟢 Health check: /health`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor escuchando en puerto ${PORT}`); // Puerto dinámico
 });

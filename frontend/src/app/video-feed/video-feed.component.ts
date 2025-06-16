@@ -2,6 +2,18 @@ import { Component, ViewChild, ElementRef, OnInit, OnDestroy, Inject, PLATFORM_I
 import { isPlatformBrowser } from '@angular/common';
 import { io, Socket } from 'socket.io-client';
 
+// Definir interfaces para los tipos de datos
+interface MediaPipeLandmark {
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface HandResults {
+  multiHandLandmarks?: MediaPipeLandmark[][];
+  image: HTMLCanvasElement | HTMLImageElement | HTMLVideoElement;
+}
+
 declare var Hands: any;
 declare var Camera: any;
 
@@ -147,7 +159,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
         return;
       }
       await this.initCamera();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al iniciar cámara:', error);
       this.mensaje = 'Error al acceder a la cámara';
     }
@@ -222,7 +234,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
       minTrackingConfidence: 0.7,
     });
 
-    this.hands.onResults((results: any) => {
+    this.hands.onResults((results: HandResults) => {
       try {
         if (!results || !results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
           // Limpiar canvas si no hay manos detectadas
@@ -259,7 +271,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     this.camera.start();
   }
 
-  public processLandmarks(landmarksArray: any[]): void {
+  public processLandmarks(landmarksArray: MediaPipeLandmark[][]): void {
     // Validación profunda de los landmarks
     if (!landmarksArray || landmarksArray.length === 0) return;
 
@@ -268,10 +280,13 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     
     // Formato compatible con Flask: array de objetos {x, y, z}
     const landmarkData = firstHandLandmarks
-      .filter(landmark => landmark && typeof landmark.x === 'number' && 
-                          typeof landmark.y === 'number' && 
-                          typeof landmark.z === 'number')
-      .map(landmark => ({
+      .filter((landmark: MediaPipeLandmark) => 
+        landmark && 
+        typeof landmark.x === 'number' && 
+        typeof landmark.y === 'number' && 
+        typeof landmark.z === 'number'
+      )
+      .map((landmark: MediaPipeLandmark) => ({
         x: landmark.x,
         y: landmark.y,
         z: landmark.z
@@ -286,7 +301,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
   
-  public drawHands(results: any): void {
+  public drawHands(results: HandResults): void {
     const canvas = this.canvasElement.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -301,7 +316,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  public drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: any[], canvas: HTMLCanvasElement): void {
+  public drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: MediaPipeLandmark[], canvas: HTMLCanvasElement): void {
     if (!landmarks || landmarks.length === 0) return;
 
     const connections = [
@@ -317,7 +332,7 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     ctx.lineWidth = 2;
 
     // Dibujar puntos
-    landmarks.forEach((landmark: any) => {
+    landmarks.forEach((landmark: MediaPipeLandmark) => {
       ctx.beginPath();
       ctx.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
       ctx.fill();

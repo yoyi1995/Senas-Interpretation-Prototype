@@ -8,7 +8,7 @@ const axios = require('axios');
 const app = express();
 const server = http.createServer(app);
 const FRONTEND_URL = 'https://patient-exploration-front.up.railway.app';
-const BACKEND_URL = 'https://senas-interpretation-prototype-production.up.railway.app';
+const BACKEND_URL = 'https://senas-interpretation-prototype-production.up.railway.app:5001';
 
 // 2. Middleware CORS simplificado
 app.use(cors({
@@ -22,9 +22,16 @@ const io = new Server(server, {
     origin: FRONTEND_URL,
     methods: ["GET", "POST"]
   },
-  transports: ['websocket'], // Solo WebSocket
-  pingTimeout: 60000,       // 60 segundos (Railway necesita más tiempo)
-  pingInterval: 25000       // 25 segundos
+  transports: ['websocket'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  // Añadir estas opciones clave:
+  cookie: false,
+  serveClient: false,
+  allowEIO3: true,
+  allowUpgrades: false,
+  perMessageDeflate: false,
+  httpCompression: false
 });
 
 // 4. Endpoint de salud

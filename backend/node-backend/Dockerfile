@@ -4,6 +4,10 @@ FROM node:18-alpine
 # Directorio de trabajo
 WORKDIR /app
 
+# Define una variable de entorno para la URL del backend
+ARG BACKEND_URL="http://senas-interpretation-prototype-production.up.railway.app:5001"
+ENV BACKEND_URL=${BACKEND_URL}
+
 # Copia los archivos de dependencias
 COPY package*.json ./
 

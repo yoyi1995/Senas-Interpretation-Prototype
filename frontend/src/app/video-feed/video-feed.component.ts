@@ -177,13 +177,20 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
       minTrackingConfidence: 0.7,
     });
 
-    this.hands.onResults((results: any) => {
-      this.drawHands(results);
-      if (results.multiHandLandmarks && this.socket?.connected) {
-        this.processLandmarks(results.multiHandLandmarks);
-      }
-    });
-
+  this.hands.onResults((results: any) => {
+  try {
+    if (!results || !results.multiHandLandmarks) {
+      console.warn('Resultados no válidos de MediaPipe');
+      return;
+    }
+    this.drawHands(results);
+    if (results.multiHandLandmarks.length > 0 && this.socket?.connected) {
+      this.processLandmarks(results.multiHandLandmarks);
+    }
+  } catch (error) {
+    console.error('Error en onResults:', error);
+  }
+});
     this.camera = new Camera(this.videoElement.nativeElement, {
       onFrame: async () => {
         await this.hands.send({ image: this.videoElement.nativeElement });
@@ -195,21 +202,37 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     this.camera.start();
   }
 
-  public processLandmarks(landmarksArray: any[]): void {
-    const landmarks = landmarksArray[0];
-    const landmarkData = landmarks.map((landmark: any) => [
-      landmark.x,
-      landmark.y,
-      landmark.z
-    ]).flat();
-
-    try {
-      this.socket.emit('hand_landmarks', landmarkData);
-    } catch (error) {
-      console.error('Error enviando landmarks:', error);
-    }
+public processLandmarks(landmarksArray: any[]): void {
+  // Validación profunda de los landmarks
+  if (!landmarksArray || !Array.isArray(landmarksArray) || landmarksArray.length === 0) {
+    console.warn('Array de landmarks no válido');
+    return;
   }
 
+  const firstHandLandmarks = landmarksArray[0];
+  
+  // Verifica que los landmarks tengan la estructura esperada
+  if (!firstHandLandmarks || !Array.isArray(firstHandLandmarks)) {
+    console.warn('Landmarks de mano no válidos');
+    return;
+  }
+
+  try {
+    const landmarkData = firstHandLandmarks
+      .filter(landmark => landmark && typeof landmark.x === 'number' && 
+                          typeof landmark.y === 'number' && 
+                          typeof landmark.z === 'number')
+      .map(landmark => [landmark.x, landmark.y, landmark.z])
+      .flat();
+
+    if (landmarkData.length > 0 && this.socket?.connected) {
+      this.socket.emit('hand_landmarks', landmarkData);
+    }
+  } catch (error) {
+    console.error('Error procesando landmarks:', error);
+  }
+}
+  
   public drawHands(results: any): void {
   const canvas = this.canvasElement.nativeElement;
   const ctx = canvas.getContext('2d');

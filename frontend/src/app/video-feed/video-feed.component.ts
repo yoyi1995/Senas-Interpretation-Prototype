@@ -211,44 +211,58 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   }
 
   public drawHands(results: any): void {
-    const canvas = this.canvasElement.nativeElement;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  const canvas = this.canvasElement.nativeElement;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
 
-    canvas.width = results.image.width;
-    canvas.height = results.image.height;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+  canvas.width = results.image.width;
+  canvas.height = results.image.height;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
-    if (results.multiHandLandmarks) {
-      this.drawLandmarks(ctx, results.multiHandLandmarks[0], canvas);
-    }
+  // Verificación más estricta
+  if (results.multiHandLandmarks?.length > 0) {
+    this.drawLandmarks(ctx, results.multiHandLandmarks[0], canvas);
+  }
+}
+
+public drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: any[], canvas: HTMLCanvasElement): void {
+  // Verificación adicional de seguridad
+  if (!landmarks || !Array.isArray(landmarks)) {
+    console.warn('Landmarks no válidos:', landmarks);
+    return;
   }
 
-  public drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: any[], canvas: HTMLCanvasElement): void {
-    const connections = [
-      [0, 1], [1, 2], [2, 3], [3, 4],
-      [0, 5], [5, 6], [6, 7], [7, 8],
-      [0, 9], [9, 10], [10, 11], [11, 12],
-      [0, 13], [13, 14], [14, 15], [15, 16],
-      [0, 17], [17, 18], [18, 19], [19, 20]
-    ];
+  const connections = [
+    [0, 1], [1, 2], [2, 3], [3, 4],
+    [0, 5], [5, 6], [6, 7], [7, 8],
+    [0, 9], [9, 10], [10, 11], [11, 12],
+    [0, 13], [13, 14], [14, 15], [15, 16],
+    [0, 17], [17, 18], [18, 19], [19, 20]
+  ];
 
-    ctx.fillStyle = 'red';
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 2;
+  ctx.fillStyle = 'red';
+  ctx.strokeStyle = 'red';
+  ctx.lineWidth = 2;
 
-    landmarks.forEach((landmark: any) => {
-      ctx.beginPath();
-      ctx.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
-      ctx.fill();
-    });
+  // Dibuja puntos (con verificación adicional)
+  landmarks?.forEach((landmark: any) => {
+    if (!landmark) return;
+    ctx.beginPath();
+    ctx.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
+    ctx.fill();
+  });
 
+  // Dibuja conexiones (solo si hay landmarks)
+  if (landmarks.length > 0) {
     ctx.beginPath();
     connections.forEach(([start, end]) => {
-      ctx.moveTo(landmarks[start].x * canvas.width, landmarks[start].y * canvas.height);
-      ctx.lineTo(landmarks[end].x * canvas.width, landmarks[end].y * canvas.height);
+      if (landmarks[start] && landmarks[end]) {
+        ctx.moveTo(landmarks[start].x * canvas.width, landmarks[start].y * canvas.height);
+        ctx.lineTo(landmarks[end].x * canvas.width, landmarks[end].y * canvas.height);
+      }
     });
     ctx.stroke();
   }
+}
 }

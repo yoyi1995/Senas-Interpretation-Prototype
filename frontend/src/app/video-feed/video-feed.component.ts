@@ -236,19 +236,34 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
 
     this.hands.onResults((results: HandResults) => {
       try {
-        if (!results || !results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-          // Limpiar canvas si no hay manos detectadas
-          const canvas = this.canvasElement.nativeElement;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Verificar si hay landmarks válidos
+        const hasValidLandmarks = results?.multiHandLandmarks && 
+                                 Array.isArray(results.multiHandLandmarks) && 
+                                 results.multiHandLandmarks.length > 0;
+        
+        // Limpiar canvas si no hay manos detectadas
+        const canvas = this.canvasElement.nativeElement;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          // Solo dibujar la imagen si hay resultados válidos
+          if (results.image) {
+            canvas.width = results.image.width;
+            canvas.height = results.image.height;
+            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
           }
+        }
+        
+        if (!hasValidLandmarks) {
           return;
         }
         
+        // Dibujar las manos si hay landmarks válidos
         this.drawHands(results);
         
-        if (results.multiHandLandmarks.length > 0 && this.socket?.connected) {
+        // Procesar los landmarks
+        if (this.socket?.connected) {
           this.processLandmarks(results.multiHandLandmarks);
         }
       } catch (error) {
@@ -304,14 +319,10 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   public drawHands(results: HandResults): void {
     const canvas = this.canvasElement.nativeElement;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx || !results.multiHandLandmarks) return;
 
-    canvas.width = results.image.width;
-    canvas.height = results.image.height;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-
-    if (results.multiHandLandmarks?.length > 0) {
+    // Asegurarse de que tenemos landmarks válidos
+    if (results.multiHandLandmarks.length > 0) {
       this.drawLandmarks(ctx, results.multiHandLandmarks[0], canvas);
     }
   }

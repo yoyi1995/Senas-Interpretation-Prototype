@@ -24,6 +24,10 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   public loading: boolean = false;
   public detectionTimeout: any = null;
   public detectionLetter: string = '';
+  public connectionStatus: string = 'Desconectado';
+  public isProcessing: boolean = false;
+  public connectionAttempts: number = 0;
+  private MAX_CONNECTION_ATTEMPTS = 5;
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
@@ -40,16 +44,24 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
   public connectToServer(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     
+    this.connectionStatus = 'Conectando...';
+    this.connectionAttempts++;
+    
     this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
       path: '/socket.io/',
       transports: ['websocket'],
       reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      autoConnect: true
+      reconnectionDelay: 3000,
+      autoConnect: true,
+      withCredentials: true,
+      secure: true,
+      rejectUnauthorized: false
     });
 
     this.socket.on('connect', () => {
       console.log('✅ Conectado al servidor de señas');
+      this.connectionStatus = 'Conectado';
+      this.connectionAttempts = 0;
     });
 
     this.socket.on('detected_letter', (letter: string) => {
@@ -60,6 +72,26 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
 
     this.socket.on('connect_error', (err) => {
       console.error('🚨 Error de conexión:', err.message);
+      this.connectionStatus = `Error: ${err.message}`;
+      
+      if (this.connectionAttempts >= this.MAX_CONNECTION_ATTEMPTS) {
+        this.mensaje = 'No se pudo conectar al servidor. Recargue la página.';
+        this.socket.disconnect();
+      }
+    });
+
+    this.socket.on('disconnect', (reason) => {
+      console.log('❌ Desconectado:', reason);
+      this.connectionStatus = 'Desconectado';
+      
+      if (reason === 'io server disconnect') {
+        // Reconexión forzada si el servidor nos desconectó
+        this.socket.connect();
+      }
+    });
+
+    this.socket.on('processing_status', (status: string) => {
+      this.isProcessing = status === 'processing';
     });
   }
 
@@ -87,6 +119,12 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     }
   }
 
+  public clearWord(): void {
+    this.palabra = '';
+    this.detectionLetter = '';
+    this.mensaje = '';
+  }
+
   public confirmWord(): void {
     if (this.palabra) {
       this.speakWord(this.palabra);
@@ -104,6 +142,10 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
 
   public async onStartCamera(): Promise<void> {
     try {
+      if (!this.socket.connected) {
+        this.mensaje = 'Primero conecte al servidor';
+        return;
+      }
       await this.initCamera();
     } catch (error) {
       console.error('Error al iniciar cámara:', error);
@@ -124,6 +166,9 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
       });
       this.videoElement.nativeElement.srcObject = this.stream;
       await this.initMediaPipeHands();
+    } catch (error: any) {
+      console.error('Error al iniciar cámara:', error);
+      this.mensaje = error.message || 'Error de cámara';
     } finally {
       this.loading = false;
     }
@@ -177,23 +222,35 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
       minTrackingConfidence: 0.7,
     });
 
-  this.hands.onResults((results: any) => {
-  try {
-    if (!results || !results.multiHandLandmarks) {
-      console.warn('Resultados no válidos de MediaPipe');
-      return;
-    }
-    this.drawHands(results);
-    if (results.multiHandLandmarks.length > 0 && this.socket?.connected) {
-      this.processLandmarks(results.multiHandLandmarks);
-    }
-  } catch (error) {
-    console.error('Error en onResults:', error);
-  }
-});
+    this.hands.onResults((results: any) => {
+      try {
+        if (!results || !results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+          // Limpiar canvas si no hay manos detectadas
+          const canvas = this.canvasElement.nativeElement;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          }
+          return;
+        }
+        
+        this.drawHands(results);
+        
+        if (results.multiHandLandmarks.length > 0 && this.socket?.connected) {
+          this.processLandmarks(results.multiHandLandmarks);
+        }
+      } catch (error) {
+        console.error('Error en onResults:', error);
+      }
+    });
+
     this.camera = new Camera(this.videoElement.nativeElement, {
       onFrame: async () => {
-        await this.hands.send({ image: this.videoElement.nativeElement });
+        try {
+          await this.hands.send({ image: this.videoElement.nativeElement });
+        } catch (error) {
+          console.warn('Error enviando frame a MediaPipe:', error);
+        }
       },
       width: 640,
       height: 480
@@ -202,82 +259,71 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     this.camera.start();
   }
 
-public processLandmarks(landmarksArray: any[]): void {
-  // Validación profunda de los landmarks
-  if (!landmarksArray || !Array.isArray(landmarksArray) || landmarksArray.length === 0) {
-    console.warn('Array de landmarks no válido');
-    return;
-  }
+  public processLandmarks(landmarksArray: any[]): void {
+    // Validación profunda de los landmarks
+    if (!landmarksArray || landmarksArray.length === 0) return;
 
-  const firstHandLandmarks = landmarksArray[0];
-  
-  // Verifica que los landmarks tengan la estructura esperada
-  if (!firstHandLandmarks || !Array.isArray(firstHandLandmarks)) {
-    console.warn('Landmarks de mano no válidos');
-    return;
-  }
-
-  try {
+    const firstHandLandmarks = landmarksArray[0];
+    if (!firstHandLandmarks) return;
+    
+    // Formato compatible con Flask: array de objetos {x, y, z}
     const landmarkData = firstHandLandmarks
       .filter(landmark => landmark && typeof landmark.x === 'number' && 
                           typeof landmark.y === 'number' && 
                           typeof landmark.z === 'number')
-      .map(landmark => [landmark.x, landmark.y, landmark.z])
-      .flat();
+      .map(landmark => ({
+        x: landmark.x,
+        y: landmark.y,
+        z: landmark.z
+      }));
 
     if (landmarkData.length > 0 && this.socket?.connected) {
-      this.socket.emit('hand_landmarks', landmarkData);
+      // Enviar evento de procesamiento
+      this.socket.emit('processing', true);
+      
+      // Enviar los landmarks
+      this.socket.emit('hand_landmarks', { landmarks: landmarkData });
     }
-  } catch (error) {
-    console.error('Error procesando landmarks:', error);
   }
-}
   
   public drawHands(results: any): void {
-  const canvas = this.canvasElement.nativeElement;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+    const canvas = this.canvasElement.nativeElement;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-  canvas.width = results.image.width;
-  canvas.height = results.image.height;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+    canvas.width = results.image.width;
+    canvas.height = results.image.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
-  // Verificación más estricta
-  if (results.multiHandLandmarks?.length > 0) {
-    this.drawLandmarks(ctx, results.multiHandLandmarks[0], canvas);
-  }
-}
-
-public drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: any[], canvas: HTMLCanvasElement): void {
-  // Verificación adicional de seguridad
-  if (!landmarks || !Array.isArray(landmarks)) {
-    console.warn('Landmarks no válidos:', landmarks);
-    return;
+    if (results.multiHandLandmarks?.length > 0) {
+      this.drawLandmarks(ctx, results.multiHandLandmarks[0], canvas);
+    }
   }
 
-  const connections = [
-    [0, 1], [1, 2], [2, 3], [3, 4],
-    [0, 5], [5, 6], [6, 7], [7, 8],
-    [0, 9], [9, 10], [10, 11], [11, 12],
-    [0, 13], [13, 14], [14, 15], [15, 16],
-    [0, 17], [17, 18], [18, 19], [19, 20]
-  ];
+  public drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: any[], canvas: HTMLCanvasElement): void {
+    if (!landmarks || landmarks.length === 0) return;
 
-  ctx.fillStyle = 'red';
-  ctx.strokeStyle = 'red';
-  ctx.lineWidth = 2;
+    const connections = [
+      [0, 1], [1, 2], [2, 3], [3, 4],
+      [0, 5], [5, 6], [6, 7], [7, 8],
+      [0, 9], [9, 10], [10, 11], [11, 12],
+      [0, 13], [13, 14], [14, 15], [15, 16],
+      [0, 17], [17, 18], [18, 19], [19, 20]
+    ];
 
-  // Dibuja puntos (con verificación adicional)
-  landmarks?.forEach((landmark: any) => {
-    if (!landmark) return;
-    ctx.beginPath();
-    ctx.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
-    ctx.fill();
-  });
+    ctx.fillStyle = '#FF0000'; // Rojo para puntos
+    ctx.strokeStyle = '#00FF00'; // Verde para conexiones
+    ctx.lineWidth = 2;
 
-  // Dibuja conexiones (solo si hay landmarks)
-  if (landmarks.length > 0) {
+    // Dibujar puntos
+    landmarks.forEach((landmark: any) => {
+      ctx.beginPath();
+      ctx.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+
+    // Dibujar conexiones
     ctx.beginPath();
     connections.forEach(([start, end]) => {
       if (landmarks[start] && landmarks[end]) {
@@ -287,5 +333,4 @@ public drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: any[], canvas: HT
     });
     ctx.stroke();
   }
-}
 }

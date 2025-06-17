@@ -34,7 +34,7 @@ export class VideoFeedComponent {
 
     // Escucha el evento de detección de letra desde el servidor
     this.socket.on('detected_letter', (letter: string) => {
-      this.mensaje = Letra detectada: ${letter};
+    this.mensaje = `Letra detectada: ${letter}`;
       this.detectionLetter = letter;
 
       // Cancela cualquier temporizador de detección previo
@@ -139,7 +139,7 @@ export class VideoFeedComponent {
   // Inicializa el componente de detección de manos de MediaPipe
   initMediaPipeHands() {
     this.hands = new Hands({
-      locateFile: (file: string) => https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file},
+     locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
 
     this.hands.setOptions({

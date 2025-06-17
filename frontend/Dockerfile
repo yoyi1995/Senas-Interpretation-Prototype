@@ -2,10 +2,10 @@
 FROM node:18 AS builder
 WORKDIR /app
 
-# 1. Instala dependencias y Angular CLI
+# 1. Instala Angular CLI y todas las dependencias
 COPY package*.json ./
-RUN npm ci --omit=dev --legacy-peer-deps && \
-    npm install -g @angular/cli
+RUN npm install -g @angular/cli && \
+    npm ci --legacy-peer-deps  # Incluye devDependencies
 
 # 2. Copia código y construye
 COPY src ./src

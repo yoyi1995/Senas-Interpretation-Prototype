@@ -1,20 +1,21 @@
-# Usa una imagen oficial de Node.js
-FROM node:18-alpine
+# Imagen base
+FROM node:18
 
-# Directorio de trabajo
+# Crear y usar directorio de trabajo
 WORKDIR /app
 
-# Copia archivos de dependencias
+# Copiar archivos de definición
 COPY package*.json ./
 
-# Instala solo dependencias necesarias para producción
-RUN npm install --production
+# Instalar dependencias
+RUN npm install
 
-# Copia el resto de archivos del proyecto
+# Copiar el resto de la app
 COPY . .
 
-# Expone el puerto dinámico usado en el server.js
+# Exponer el puerto (Render usará una variable de entorno $PORT)
 EXPOSE 3000
 
-# Comando para iniciar el servidor
-CMD ["node", "server.js"]
+# Comando de arranque
+CMD ["npm", "start"]
+

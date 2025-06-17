@@ -8,7 +8,7 @@ const app = express();
 const server = http.createServer(app);
 
 // URL del microservicio Flask que hace la detección (ajusta si es diferente)
-const BACKEND_URL = process.env.BACKEND_URL || "https://senas-interpretation-prototype.onrender.com";
+const BACKEND_URL = process.env.BACKEND_URL || "https://backen-flas.onrender.com";
 
 // CORS para aceptar solo tu frontend en Render
 app.use(cors({

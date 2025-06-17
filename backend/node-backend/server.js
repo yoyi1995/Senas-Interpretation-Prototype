@@ -7,28 +7,28 @@ const axios = require('axios');
 const app = express();
 const server = http.createServer(app);
 
-// Configuración de CORS con dominio de Railway
+// URL del microservicio Flask que hace la detección (ajusta si es diferente)
+const BACKEND_URL = process.env.BACKEND_URL || "https://senas-interpretation-prototype.onrender.com";
+
+// CORS para aceptar solo tu frontend en Render
 app.use(cors({
-  origin: "https://patient-exploration-front.up.railway.app",  // Frontend desplegado
+  origin: "https://sena-frontend.onrender.com", // tu frontend real en Render
   methods: ["GET", "POST"]
 }));
+
 app.use(express.json());
 
-// Puerto dinámico para Railway
-const PORT = process.env.PORT || 3000;
-
-// URL del backend desde variable de entorno
-const BACKEND_URL = process.env.BACKEND_URL || "http://senas-interpretation-prototype-production.up.railway.app:5001";
-
+// Socket.IO con CORS
 const io = socketIo(server, {
   cors: {
-    origin: "https://patient-exploration-front.up.railway.app", 
+    origin: "https://sena-frontend.onrender.com",
     methods: ["GET", "POST"]
   }
 });
 
+// WebSocket
 io.on('connection', (socket) => {
-  console.log('Cliente conectado');
+  console.log('✅ Cliente conectado');
 
   socket.on('hand_landmarks', async (landmarks) => {
     try {
@@ -37,16 +37,19 @@ io.on('connection', (socket) => {
       });
       socket.emit('detected_letter', response.data.predicted_letter);
     } catch (error) {
-      console.error('Error al procesar los landmarks:', error);
+      console.error('❌ Error al procesar los landmarks:', error.message);
       socket.emit('error', 'Error procesando los landmarks');
     }
   });
 
   socket.on('disconnect', () => {
-    console.log('Cliente desconectado');
+    console.log('🔌 Cliente desconectado');
   });
 });
 
+// Escucha dinámica para Render
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor escuchando en puerto ${PORT}`); // Puerto dinámico
+  console.log(`🚀 Servidor escuchando en puerto ${PORT}`);
 });
+

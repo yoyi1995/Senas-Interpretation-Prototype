@@ -1,9 +1,8 @@
 # Etapa de construcción
-FROM node:18 AS builder
+FROM node:18 as builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm install -g @angular/cli && \
-    npm ci --legacy-peer-deps
+RUN npm install -g @angular/cli && npm ci --legacy-peer-deps
 COPY . .
 RUN ng build --configuration production
 

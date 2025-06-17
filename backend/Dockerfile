@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Copia requerimientos y modelo
 COPY requirements.txt .
-COPY backend/modelo_landmarks.keras ./modelo_landmarks.keras  # Ruta correcta
+COPY modelo_landmarks.keras ./modelo_landmarks.keras  # Ruta correcta
 
 # Instala dependencias
 RUN pip install --no-cache-dir -r requirements.txt

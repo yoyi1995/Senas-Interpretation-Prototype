@@ -4,9 +4,10 @@ FROM python:3.9-slim
 # Directorio de trabajo
 WORKDIR /app
 
+
 # Copia requerimientos y modelo
 COPY requirements.txt .
-COPY modelo_landmarks.keras ./modelo_landmarks.keras  # Asegura que el modelo esté incluido
+COPY backend/modelo_landmarks.keras ./modelo_landmarks.keras  # Ruta correcta
 
 # Instala dependencias
 RUN pip install --no-cache-dir -r requirements.txt

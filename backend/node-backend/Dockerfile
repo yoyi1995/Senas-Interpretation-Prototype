@@ -7,14 +7,14 @@ WORKDIR /app
 # Copia archivos de dependencias
 COPY package*.json ./
 
-# Instala dependencias
+# Instala solo dependencias necesarias para producción
 RUN npm install --production
 
-# Copia el archivo principal
-COPY server.js .
+# Copia el resto de archivos del proyecto
+COPY . .
 
-# Expone el puerto 8080 (puerto estándar de Railway)
-EXPOSE 8080
+# Expone el puerto dinámico usado en el server.js
+EXPOSE 3000
 
 # Comando para iniciar el servidor
 CMD ["node", "server.js"]

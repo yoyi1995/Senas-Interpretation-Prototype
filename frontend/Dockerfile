@@ -5,23 +5,21 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build --configuration production
 
-# Encuentra automáticamente la carpeta generada dentro de dist/
-RUN export APP_NAME=$(ls dist) && \
-    echo "App name: $APP_NAME" && \
-    mv dist/$APP_NAME /app/dist
+# Usamos el nombre del proyecto y la configuración correctamente
+RUN npm run build --configuration=production --project=sena_manov2
 
 # Etapa 2: Servir con NGINX
 FROM nginx:alpine
 
-# Copia archivos generados al NGINX
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Copiamos los archivos generados a NGINX
+COPY --from=builder /app/dist/senas-frontend /usr/share/nginx/html
 
-# Copia configuración personalizada de NGINX
+# Copiamos la configuración personalizada de NGINX
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
+
 
 

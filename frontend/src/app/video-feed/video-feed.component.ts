@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef } from '@angular/core';
+ import { Component, ViewChild, ElementRef } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 
 declare var Hands: any;
@@ -33,28 +33,20 @@ export class VideoFeedComponent {
     });
 
     // Escucha el evento de detección de letra desde el servidor
-   let repeatedLetterCount = 0;
+    this.socket.on('detected_letter', (letter: string) => {
+      this.mensaje = Letra detectada: ${letter};
+      this.detectionLetter = letter;
 
-this.socket.on('detected_letter', (letter: string) => {
-  if (letter === this.detectionLetter) {
-    repeatedLetterCount++;
-    if (repeatedLetterCount > 3) return; // Evita seguir mostrando la misma letra
-  } else {
-    repeatedLetterCount = 0;
-  }
+      // Cancela cualquier temporizador de detección previo
+      if (this.detectionTimeout) {
+        clearTimeout(this.detectionTimeout);
+      }
 
-  this.detectionLetter = letter;
-  this.mensaje = `Letra detectada: ${letter}`;
-
-  if (this.detectionTimeout) {
-    clearTimeout(this.detectionTimeout);
-  }
-
-  this.detectionTimeout = setTimeout(() => {
-    this.addLetterToWord(letter);
-  }, 300);
-});
-
+      // Establece un nuevo temporizador para agregar la letra después de un breve retraso
+      this.detectionTimeout = setTimeout(() => {
+        this.addLetterToWord(letter);
+      }, 298);
+    });
   }
 
   // Agrega la letra detectada a la palabra en construcción
@@ -147,7 +139,7 @@ this.socket.on('detected_letter', (letter: string) => {
   // Inicializa el componente de detección de manos de MediaPipe
   initMediaPipeHands() {
     this.hands = new Hands({
-      locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+      locateFile: (file: string) => https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file},
     });
 
     this.hands.setOptions({
@@ -223,32 +215,14 @@ this.socket.on('detected_letter', (letter: string) => {
   }
 
   // Envía los datos de las coordenadas de las manos al servidor
- private lastLandmarks: number[] | null = null;
-private lastSentTime = 0;
+  sendLandmarksToServer(landmarks: any) {
+    const landmarkData = landmarks.flatMap((landmark: any) => [
+      landmark.x,
+      landmark.y,
+      landmark.z
+    ]);
 
-sendLandmarksToServer(landmarks: any) {
-  const now = Date.now();
-  if (now - this.lastSentTime < 400) return; // Espera al menos 400ms antes de enviar de nuevo
-  this.lastSentTime = now;
-
-  const landmarkData = landmarks.flatMap((landmark: any) => [
-    landmark.x,
-    landmark.y,
-    landmark.z
-  ]);
-
-  // Compara con los últimos enviados para evitar redundancia
-  if (this.areLandmarksSimilar(landmarkData, this.lastLandmarks)) return;
-
-  this.lastLandmarks = landmarkData;
-  this.socket.emit('hand_landmarks', landmarkData);
-}
-
-areLandmarksSimilar(a: number[] | null, b: number[] | null): boolean {
-  if (!a || !b || a.length !== b.length) return false;
-  const threshold = 0.01;
-  return a.every((val, i) => Math.abs(val - b[i]) < threshold);
-}
-
-}
+    this.socket.emit('hand_landmarks', landmarkData);
+  }
+} 
 

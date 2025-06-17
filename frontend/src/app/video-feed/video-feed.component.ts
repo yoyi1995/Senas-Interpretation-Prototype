@@ -13,69 +13,68 @@ declare var Camera: any;
 export class VideoFeedComponent {
   @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
   @ViewChild('canvasElement') canvasElement!: ElementRef<HTMLCanvasElement>;
-
-  public stream: MediaStream | null = null;
+  public stream: MediaStream | null = null;  
   private socket!: Socket;
-  mensaje: string = '';
-  palabra: string = '';
+  mensaje: string = '';  
+  palabra: string = '';  
   hands: any;
   camera: any;
   loading: boolean = false;
 
   private detectionTimeout: any = null;
-  private detectionLetter: string = '';
+  private detectionLetter: string = '';  // Almacena la última letra detectada
 
-  ngOnInit() {
-    this.connectToServer();
-  }
-
-  /** Conecta con el servidor de Socket.IO */
+  // Conecta al servidor de Socket.IO
   connectToServer() {
     this.socket = io('https://node-flas.onrender.com');
 
     this.socket.on('connect', () => {
-      console.log('✅ Conexión exitosa al servidor');
+      console.log('Conexión exitosa al servidor');
     });
 
+    // Escucha el evento de detección de letra desde el servidor
     this.socket.on('detected_letter', (letter: string) => {
-      this.mensaje = `Letra detectada: ${letter}`;
+      this.mensaje = Letra detectada: ${letter};
       this.detectionLetter = letter;
 
+      // Cancela cualquier temporizador de detección previo
       if (this.detectionTimeout) {
         clearTimeout(this.detectionTimeout);
       }
 
+      // Establece un nuevo temporizador para agregar la letra después de un breve retraso
       this.detectionTimeout = setTimeout(() => {
         this.addLetterToWord(letter);
       }, 298);
     });
   }
 
-  /** Agrega una letra a la palabra si no es duplicada */
+  // Agrega la letra detectada a la palabra en construcción
   addLetterToWord(letter: string) {
+    // Verifica que la letra actual no sea la misma que la última registrada para evitar duplicados
     if (this.palabra.length === 0 || this.palabra.slice(-1) !== letter) {
       this.palabra += letter;
     }
-
-    this.mensaje = '';
-    this.detectionLetter = '';
+  
+    this.mensaje = '';  // Limpia el mensaje mostrado
+    this.detectionLetter = '';  // Reinicia la letra detectada
   }
 
-  /** Confirma manualmente una letra */
+  // Confirma manualmente la letra detectada y la agrega a la palabra
   confirmLetter() {
     if (this.detectionLetter) {
       this.addLetterToWord(this.detectionLetter);
     }
   }
 
-  /** Reproduce la palabra detectada por síntesis de voz */
+  // Reproduce la palabra construida usando síntesis de voz
   confirmWord() {
     if (this.palabra) {
       this.speakWord(this.palabra);
     }
   }
 
-  /** Usa la síntesis de voz del navegador */
+  // Convierte la palabra en audio usando la API de síntesis de voz
   speakWord(text: string) {
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
@@ -83,74 +82,74 @@ export class VideoFeedComponent {
       utterance.rate = 1;
       window.speechSynthesis.speak(utterance);
     } else {
-      console.error('❌ Tu navegador no soporta la síntesis de voz.');
+      console.error("Tu navegador no soporta la síntesis de voz.");
     }
   }
 
-  /** Inicia el flujo de la cámara */
+  // Inicia la cámara y configura el procesamiento de la detección de manos
   onStartCamera() {
     this.initCamera();
   }
 
-  /** Inicializa el flujo de video y la detección */
+  // Inicia la cámara y el procesamiento de imágenes usando MediaPipe
   async initCamera() {
-    this.loading = true;
-
+    this.loading = true;  
     try {
-      this.stopCamera(); // Asegura que no haya una cámara activa previa
-
+      this.stopCamera();  // Detiene cualquier flujo de cámara previo
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       this.videoElement.nativeElement.srcObject = stream;
       this.stream = stream;
-
-      this.initMediaPipeHands();
+      this.initMediaPipeHands();  // Configura MediaPipe Hands
     } catch (error) {
-      console.error('❌ Error al acceder a la cámara:', error);
+      console.error('Error al acceder a la cámara:', error);
     } finally {
-      this.loading = false;
+      this.loading = false;  
     }
   }
 
-  /** Detiene la cámara y limpia recursos */
+  // Detiene la cámara y limpia los recursos
   stopCamera() {
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
+      console.log('Cámara detenida');
     }
 
-    if (this.videoElement.nativeElement) {
-      this.videoElement.nativeElement.srcObject = null;
-    }
+    this.videoElement.nativeElement.srcObject = null;
 
     if (this.hands) {
       this.hands.close();
       this.hands = null;
+      console.log('MediaPipe Hands detenido');
     }
 
     if (this.camera) {
       this.camera.stop();
       this.camera = null;
+      console.log('Objeto camera detenido');
     }
 
     const canvas = this.canvasElement.nativeElement;
-    const ctx = canvas.getContext('2d');
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+    }
   }
 
-  /** Inicializa MediaPipe Hands */
+  // Inicializa el componente de detección de manos de MediaPipe
   initMediaPipeHands() {
     this.hands = new Hands({
-      locateFile: (file: string) =>
-        `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      locateFile: (file: string) => https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file},
     });
 
     this.hands.setOptions({
       maxNumHands: 1,
       modelComplexity: 1,
       minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7
+      minTrackingConfidence: 0.7,
     });
 
+    // Procesa los resultados de detección y envía las coordenadas al servidor
     this.hands.onResults((results: any) => {
       this.drawHands(results);
       if (results.multiHandLandmarks) {
@@ -171,30 +170,32 @@ export class VideoFeedComponent {
     this.camera.start();
   }
 
-  /** Dibuja la mano detectada y conexiones en el canvas */
+  // Dibuja las manos y sus conexiones en el canvas
   drawHands(results: any) {
     const canvas = this.canvasElement.nativeElement;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const context = canvas.getContext('2d');
+    if (!context) return;
 
     canvas.width = results.image.width;
     canvas.height = results.image.height;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
     if (results.multiHandLandmarks) {
       for (const landmarks of results.multiHandLandmarks) {
-        ctx.fillStyle = 'red';
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
+        context.fillStyle = 'red';
+        context.strokeStyle = 'red';
+        context.lineWidth = 2;
 
-        for (const point of landmarks) {
-          ctx.beginPath();
-          ctx.arc(point.x * canvas.width, point.y * canvas.height, 5, 0, 2 * Math.PI);
-          ctx.fill();
+        // Dibuja cada punto de referencia de la mano
+        for (const landmark of landmarks) {
+          context.beginPath();
+          context.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
+          context.fill();
         }
 
+        // Dibuja conexiones entre puntos de la mano
         const connections = [
           [0, 1], [1, 2], [2, 3], [3, 4],
           [0, 5], [5, 6], [6, 7], [7, 8],
@@ -203,21 +204,24 @@ export class VideoFeedComponent {
           [0, 17], [17, 18], [18, 19], [19, 20]
         ];
 
-        ctx.beginPath();
+        context.beginPath();
         for (const [start, end] of connections) {
-          ctx.moveTo(landmarks[start].x * canvas.width, landmarks[start].y * canvas.height);
-          ctx.lineTo(landmarks[end].x * canvas.width, landmarks[end].y * canvas.height);
+          context.moveTo(landmarks[start].x * canvas.width, landmarks[start].y * canvas.height);
+          context.lineTo(landmarks[end].x * canvas.width, landmarks[end].y * canvas.height);
         }
-        ctx.stroke();
+        context.stroke();
       }
     }
   }
 
-  /** Envía landmarks al servidor */
+  // Envía los datos de las coordenadas de las manos al servidor
   sendLandmarksToServer(landmarks: any) {
-    const flatData = landmarks.flatMap((pt: any) => [pt.x, pt.y, pt.z]);
-    this.socket.emit('hand_landmarks', flatData);
+    const landmarkData = landmarks.flatMap((landmark: any) => [
+      landmark.x,
+      landmark.y,
+      landmark.z
+    ]);
+
+    this.socket.emit('hand_landmarks', landmarkData);
   }
-}
-
-
+} 

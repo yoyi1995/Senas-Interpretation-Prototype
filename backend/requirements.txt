@@ -4,6 +4,8 @@ astunparse==1.6.3
 attrs==24.2.0
 bidict==0.23.1
 blinker==1.8.2
+eventlet==0.35.0
+gunicorn==21.2.0
 certifi==2024.8.30
 cffi==1.17.1
 charset-normalizer==3.3.2

@@ -1,18 +1,5 @@
-import { Component, ViewChild, ElementRef, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { Component, ViewChild, ElementRef } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
-
-// Definir interfaces para los tipos de datos
-interface MediaPipeLandmark {
-  x: number;
-  y: number;
-  z: number;
-}
-
-interface HandResults {
-  multiHandLandmarks?: MediaPipeLandmark[][];
-  image: HTMLCanvasElement | HTMLImageElement | HTMLVideoElement;
-}
 
 declare var Hands: any;
 declare var Camera: any;
@@ -23,206 +10,134 @@ declare var Camera: any;
   templateUrl: './video-feed.component.html',
   styleUrls: ['./video-feed.component.css']
 })
-export class VideoFeedComponent implements OnInit, OnDestroy {
+export class VideoFeedComponent {
   @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
   @ViewChild('canvasElement') canvasElement!: ElementRef<HTMLCanvasElement>;
-  
-  public stream: MediaStream | null = null;
-  public socket!: Socket;
-  public mensaje: string = '';
-  public palabra: string = '';
-  public hands: any;
-  public camera: any;
-  public loading: boolean = false;
-  public detectionTimeout: any = null;
-  public detectionLetter: string = '';
-  public connectionStatus: string = 'Desconectado';
-  public isProcessing: boolean = false;
-  public connectionAttempts: number = 0;
-  private MAX_CONNECTION_ATTEMPTS = 5;
+  public stream: MediaStream | null = null;  
+  private socket!: Socket;
+  mensaje: string = '';  
+  palabra: string = '';  
+  hands: any;
+  camera: any;
+  loading: boolean = false;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+  private detectionTimeout: any = null;
+  private detectionLetter: string = '';  // Almacena la última letra detectada
 
-  ngOnInit(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      this.connectToServer();
-    }
-  }
-
-  ngOnDestroy(): void {
-    this.cleanupResources();
-  }
-
-  public connectToServer(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-    
-    this.connectionStatus = 'Conectando...';
-    this.connectionAttempts++;
-    
-    this.socket = io('https://senas-interpretation-prototype-node.up.railway.app', {
-      path: '/socket.io/',
-      transports: ['websocket'],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 3000,
-      autoConnect: true,
-      withCredentials: true,
-      secure: true,
-      rejectUnauthorized: false
-    });
+  // Conecta al servidor de Socket.IO
+  connectToServer() {
+    this.socket = io('http://senas-interpretation-prototype-node.up.railway.app:8080');
 
     this.socket.on('connect', () => {
-      console.log('✅ Conectado al servidor de señas');
-      this.connectionStatus = 'Conectado';
-      this.connectionAttempts = 0;
+      console.log('Conexión exitosa al servidor');
     });
 
+    // Escucha el evento de detección de letra desde el servidor
     this.socket.on('detected_letter', (letter: string) => {
-      if (!letter) return;
-      console.log('🔠 Letra recibida:', letter);
-      this.handleDetectedLetter(letter);
-    });
+      this.mensaje = `Letra detectada: ${letter}`;
+      this.detectionLetter = letter;
 
-    this.socket.on('connect_error', (err) => {
-      console.error('🚨 Error de conexión:', err.message);
-      this.connectionStatus = `Error: ${err.message}`;
-      
-      if (this.connectionAttempts >= this.MAX_CONNECTION_ATTEMPTS) {
-        this.mensaje = 'No se pudo conectar al servidor. Recargue la página.';
-        this.socket.disconnect();
+      // Cancela cualquier temporizador de detección previo
+      if (this.detectionTimeout) {
+        clearTimeout(this.detectionTimeout);
       }
-    });
 
-    this.socket.on('disconnect', (reason) => {
-      console.log('❌ Desconectado:', reason);
-      this.connectionStatus = 'Desconectado';
-      
-      if (reason === 'io server disconnect') {
-        // Reconexión forzada si el servidor nos desconectó
-        this.socket.connect();
-      }
-    });
-
-    this.socket.on('processing_status', (status: string) => {
-      this.isProcessing = status === 'processing';
+      // Establece un nuevo temporizador para agregar la letra después de un breve retraso
+      this.detectionTimeout = setTimeout(() => {
+        this.addLetterToWord(letter);
+      }, 298);
     });
   }
 
-  public handleDetectedLetter(letter: string): void {
-    this.mensaje = `Letra detectada: ${letter}`;
-    this.detectionLetter = letter;
-    
-    clearTimeout(this.detectionTimeout);
-    this.detectionTimeout = setTimeout(() => {
-      this.addLetterToWord(letter);
-    }, 300);
-  }
-
-  public addLetterToWord(letter: string): void {
+  // Agrega la letra detectada a la palabra en construcción
+  addLetterToWord(letter: string) {
+    // Verifica que la letra actual no sea la misma que la última registrada para evitar duplicados
     if (this.palabra.length === 0 || this.palabra.slice(-1) !== letter) {
       this.palabra += letter;
     }
-    this.mensaje = '';
-    this.detectionLetter = '';
+  
+    this.mensaje = '';  // Limpia el mensaje mostrado
+    this.detectionLetter = '';  // Reinicia la letra detectada
   }
 
-  public confirmLetter(): void {
+  // Confirma manualmente la letra detectada y la agrega a la palabra
+  confirmLetter() {
     if (this.detectionLetter) {
       this.addLetterToWord(this.detectionLetter);
     }
   }
 
-  public clearWord(): void {
-    this.palabra = '';
-    this.detectionLetter = '';
-    this.mensaje = '';
-  }
-
-  public confirmWord(): void {
+  // Reproduce la palabra construida usando síntesis de voz
+  confirmWord() {
     if (this.palabra) {
       this.speakWord(this.palabra);
     }
   }
 
-  public speakWord(text: string): void {
-    if (isPlatformBrowser(this.platformId) && 'speechSynthesis' in window) {
+  // Convierte la palabra en audio usando la API de síntesis de voz
+  speakWord(text: string) {
+    if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'es-ES';
       utterance.rate = 1;
       window.speechSynthesis.speak(utterance);
+    } else {
+      console.error("Tu navegador no soporta la síntesis de voz.");
     }
   }
 
-  public async onStartCamera(): Promise<void> {
-    try {
-      if (!this.socket.connected) {
-        this.mensaje = 'Primero conecte al servidor';
-        return;
-      }
-      await this.initCamera();
-    } catch (error: any) {
-      console.error('Error al iniciar cámara:', error);
-      this.mensaje = 'Error al acceder a la cámara';
-    }
+  // Inicia la cámara y configura el procesamiento de la detección de manos
+  onStartCamera() {
+    this.initCamera();
   }
 
-  public async initCamera(): Promise<void> {
-    this.loading = true;
+  // Inicia la cámara y el procesamiento de imágenes usando MediaPipe
+  async initCamera() {
+    this.loading = true;  
     try {
-      await this.stopCamera();
-      this.stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          width: 640, 
-          height: 480,
-          facingMode: 'user'
-        } 
-      });
-      this.videoElement.nativeElement.srcObject = this.stream;
-      await this.initMediaPipeHands();
-    } catch (error: any) {
-      console.error('Error al iniciar cámara:', error);
-      this.mensaje = error.message || 'Error de cámara';
+      this.stopCamera();  // Detiene cualquier flujo de cámara previo
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      this.videoElement.nativeElement.srcObject = stream;
+      this.stream = stream;
+      this.initMediaPipeHands();  // Configura MediaPipe Hands
+    } catch (error) {
+      console.error('Error al acceder a la cámara:', error);
     } finally {
-      this.loading = false;
+      this.loading = false;  
     }
   }
 
-  public async stopCamera(): Promise<void> {
+  // Detiene la cámara y limpia los recursos
+  stopCamera() {
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
+      console.log('Cámara detenida');
     }
-    await this.cleanupMediaPipe();
-  }
 
-  public async cleanupMediaPipe(): Promise<void> {
+    this.videoElement.nativeElement.srcObject = null;
+
     if (this.hands) {
-      try {
-        this.hands.close();
-      } catch (e) {
-        console.warn('Error cerrando MediaPipe Hands:', e);
-      }
+      this.hands.close();
       this.hands = null;
+      console.log('MediaPipe Hands detenido');
     }
+
     if (this.camera) {
-      try {
-        this.camera.stop();
-      } catch (e) {
-        console.warn('Error cerrando Camera:', e);
-      }
+      this.camera.stop();
       this.camera = null;
+      console.log('Objeto camera detenido');
+    }
+
+    const canvas = this.canvasElement.nativeElement;
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.clearRect(0, 0, canvas.width, canvas.height);
     }
   }
 
-  public cleanupResources(): void {
-    this.stopCamera();
-    if (this.socket?.connected) {
-      this.socket.disconnect();
-    }
-  }
-
-  public initMediaPipeHands(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-
+  // Inicializa el componente de detección de manos de MediaPipe
+  initMediaPipeHands() {
     this.hands = new Hands({
       locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
     });
@@ -234,50 +149,19 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
       minTrackingConfidence: 0.7,
     });
 
-    this.hands.onResults((results: HandResults) => {
-      try {
-        // Verificar si hay landmarks válidos
-        const hasValidLandmarks = results?.multiHandLandmarks && 
-                                 Array.isArray(results.multiHandLandmarks) && 
-                                 results.multiHandLandmarks.length > 0;
-        
-        // Limpiar canvas si no hay manos detectadas
-        const canvas = this.canvasElement.nativeElement;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          
-          // Solo dibujar la imagen si hay resultados válidos
-          if (results.image) {
-            canvas.width = results.image.width;
-            canvas.height = results.image.height;
-            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-          }
+    // Procesa los resultados de detección y envía las coordenadas al servidor
+    this.hands.onResults((results: any) => {
+      this.drawHands(results);
+      if (results.multiHandLandmarks) {
+        for (const landmarks of results.multiHandLandmarks) {
+          this.sendLandmarksToServer(landmarks);
         }
-        
-        if (!hasValidLandmarks) {
-          return;
-        }
-        
-        // Dibujar las manos si hay landmarks válidos
-        this.drawHands(results);
-        
-        // Procesar los landmarks
-        if (this.socket?.connected) {
-          this.processLandmarks(results.multiHandLandmarks);
-        }
-      } catch (error) {
-        console.error('Error en onResults:', error);
       }
     });
 
     this.camera = new Camera(this.videoElement.nativeElement, {
       onFrame: async () => {
-        try {
-          await this.hands.send({ image: this.videoElement.nativeElement });
-        } catch (error) {
-          console.warn('Error enviando frame a MediaPipe:', error);
-        }
+        await this.hands.send({ image: this.videoElement.nativeElement });
       },
       width: 640,
       height: 480
@@ -286,77 +170,59 @@ export class VideoFeedComponent implements OnInit, OnDestroy {
     this.camera.start();
   }
 
-  public processLandmarks(landmarksArray: MediaPipeLandmark[][]): void {
-    // Validación profunda de los landmarks
-    if (!landmarksArray || landmarksArray.length === 0) return;
-
-    const firstHandLandmarks = landmarksArray[0];
-    if (!firstHandLandmarks) return;
-    
-    // Formato compatible con Flask: array de objetos {x, y, z}
-    const landmarkData = firstHandLandmarks
-      .filter((landmark: MediaPipeLandmark) => 
-        landmark && 
-        typeof landmark.x === 'number' && 
-        typeof landmark.y === 'number' && 
-        typeof landmark.z === 'number'
-      )
-      .map((landmark: MediaPipeLandmark) => ({
-        x: landmark.x,
-        y: landmark.y,
-        z: landmark.z
-      }));
-
-    if (landmarkData.length > 0 && this.socket?.connected) {
-      // Enviar evento de procesamiento
-      this.socket.emit('processing', true);
-      
-      // Enviar los landmarks
-      this.socket.emit('hand_landmarks', { landmarks: landmarkData });
-    }
-  }
-  
-  public drawHands(results: HandResults): void {
+  // Dibuja las manos y sus conexiones en el canvas
+  drawHands(results: any) {
     const canvas = this.canvasElement.nativeElement;
-    const ctx = canvas.getContext('2d');
-    if (!ctx || !results.multiHandLandmarks) return;
+    const context = canvas.getContext('2d');
+    if (!context) return;
 
-    // Asegurarse de que tenemos landmarks válidos
-    if (results.multiHandLandmarks.length > 0) {
-      this.drawLandmarks(ctx, results.multiHandLandmarks[0], canvas);
+    canvas.width = results.image.width;
+    canvas.height = results.image.height;
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+    if (results.multiHandLandmarks) {
+      for (const landmarks of results.multiHandLandmarks) {
+        context.fillStyle = 'red';
+        context.strokeStyle = 'red';
+        context.lineWidth = 2;
+
+        // Dibuja cada punto de referencia de la mano
+        for (const landmark of landmarks) {
+          context.beginPath();
+          context.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
+          context.fill();
+        }
+
+        // Dibuja conexiones entre puntos de la mano
+        const connections = [
+          [0, 1], [1, 2], [2, 3], [3, 4],
+          [0, 5], [5, 6], [6, 7], [7, 8],
+          [0, 9], [9, 10], [10, 11], [11, 12],
+          [0, 13], [13, 14], [14, 15], [15, 16],
+          [0, 17], [17, 18], [18, 19], [19, 20]
+        ];
+
+        context.beginPath();
+        for (const [start, end] of connections) {
+          context.moveTo(landmarks[start].x * canvas.width, landmarks[start].y * canvas.height);
+          context.lineTo(landmarks[end].x * canvas.width, landmarks[end].y * canvas.height);
+        }
+        context.stroke();
+      }
     }
   }
 
-  public drawLandmarks(ctx: CanvasRenderingContext2D, landmarks: MediaPipeLandmark[], canvas: HTMLCanvasElement): void {
-    if (!landmarks || landmarks.length === 0) return;
+  // Envía los datos de las coordenadas de las manos al servidor
+  sendLandmarksToServer(landmarks: any) {
+    const landmarkData = landmarks.flatMap((landmark: any) => [
+      landmark.x,
+      landmark.y,
+      landmark.z
+    ]);
 
-    const connections = [
-      [0, 1], [1, 2], [2, 3], [3, 4],
-      [0, 5], [5, 6], [6, 7], [7, 8],
-      [0, 9], [9, 10], [10, 11], [11, 12],
-      [0, 13], [13, 14], [14, 15], [15, 16],
-      [0, 17], [17, 18], [18, 19], [19, 20]
-    ];
-
-    ctx.fillStyle = '#FF0000'; // Rojo para puntos
-    ctx.strokeStyle = '#00FF00'; // Verde para conexiones
-    ctx.lineWidth = 2;
-
-    // Dibujar puntos
-    landmarks.forEach((landmark: MediaPipeLandmark) => {
-      ctx.beginPath();
-      ctx.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
-      ctx.fill();
-    });
-
-    // Dibujar conexiones
-    ctx.beginPath();
-    connections.forEach(([start, end]) => {
-      if (landmarks[start] && landmarks[end]) {
-        ctx.moveTo(landmarks[start].x * canvas.width, landmarks[start].y * canvas.height);
-        ctx.lineTo(landmarks[end].x * canvas.width, landmarks[end].y * canvas.height);
-      }
-    });
-    ctx.stroke();
+    this.socket.emit('hand_landmarks', landmarkData);
   }
 }
+

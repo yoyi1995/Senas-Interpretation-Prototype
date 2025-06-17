@@ -19,7 +19,7 @@ RUN npm run build -- --configuration production
 FROM nginx:stable-alpine AS production
 
 # Copiar los archivos compilados desde la etapa builder
-COPY --from=builder /app/dist/senas-frontend /usr/share/nginx/html
+COPY --from=builder /app/dist/senas-frontend/browser /usr/share/nginx/html
 
 # Copiar configuración personalizada de nginx si tienes una (opcional)
 # COPY nginx.conf /etc/nginx/conf.d/default.conf

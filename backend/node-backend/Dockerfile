@@ -1,21 +1,20 @@
 # Imagen base
 FROM node:18
 
-# Crear y usar directorio de trabajo
+# Crear directorio app
 WORKDIR /app
 
-# Copiar archivos de definición
+# Copiar dependencias e instalar
 COPY package*.json ./
-
-# Instalar dependencias
 RUN npm install
 
-# Copiar el resto de la app
+# Copiar el resto de archivos
 COPY . .
 
-# Exponer el puerto (Render usará una variable de entorno $PORT)
+# Exponer el puerto
 EXPOSE 3000
 
 # Comando de arranque
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
+
 

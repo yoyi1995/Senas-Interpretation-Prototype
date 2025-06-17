@@ -1,33 +1,32 @@
-# Etapa de construcción
-FROM node:18 AS builder
+# Etapa 1: Build
+FROM node:18-alpine AS builder
+
 WORKDIR /app
 
-# Copia package.json y lock (si existe)
+# Copiar package.json y package-lock.json para instalar dependencias
 COPY package*.json ./
 
-# Instala Angular CLI globalmente (necesario para ng build)
-RUN npm install -g @angular/cli
-
-# Instala dependencias
+# Instalar dependencias (puedes usar --legacy-peer-deps si necesitas)
 RUN npm install --legacy-peer-deps
 
-# Copia el resto del proyecto
+# Copiar todo el código fuente
 COPY . .
 
-# Compila la aplicación Angular en modo producción
+# Construir la app en modo producción
 RUN npm run build -- --configuration production
 
-# Etapa de producción
-FROM nginx:alpine
-WORKDIR /usr/share/nginx/html
+# Etapa 2: Producción
+FROM nginx:stable-alpine AS production
 
-# Copia los archivos compilados desde la etapa de build
-COPY --from=builder /app/dist/sena-manov2/ .
+# Copiar los archivos compilados desde la etapa builder
+COPY --from=builder /app/dist/senas-frontend /usr/share/nginx/html
 
-# Reemplaza configuración de Nginx
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copiar configuración personalizada de nginx si tienes una (opcional)
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expone el puerto que configuraste (10000)
+# Exponer puerto (opcional si usas docker run -p)
 EXPOSE 10000
 
+# Comando para correr nginx en primer plano
 CMD ["nginx", "-g", "daemon off;"]
+

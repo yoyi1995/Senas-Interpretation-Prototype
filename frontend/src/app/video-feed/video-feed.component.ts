@@ -26,7 +26,7 @@ export class VideoFeedComponent {
 
   // Conecta al servidor de Socket.IO
   connectToServer() {
-    this.socket = io('http://senas-interpretation-prototype-node.up.railway.app:8080');
+    this.socket = io('https://node-flas.onrender.com');
 
     this.socket.on('connect', () => {
       console.log('Conexión exitosa al servidor');

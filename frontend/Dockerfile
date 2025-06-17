@@ -1,26 +1,12 @@
-# Etapa 1: Build
-FROM node:18-alpine AS builder
-
+FROM node:18 AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm install
 COPY . .
-RUN npm run build -- --configuration production
+RUN npm run build -- --configuration production --project sena_manov2
 
-# Etapa 2: Producción con nginx
-FROM nginx:stable-alpine AS production
-
-# Copiar archivos Angular
-COPY --from=builder /app/dist/senas-frontend/browser /usr/share/nginx/html
-
-# Copiar configuración nginx personalizada (¡esta es la parte clave!)
+FROM nginx:stable-alpine
+COPY --from=build /app/dist/senas-frontend/browser /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Exponer puerto
 EXPOSE 80
-
-# Iniciar nginx
 CMD ["nginx", "-g", "daemon off;"]
-
-
-

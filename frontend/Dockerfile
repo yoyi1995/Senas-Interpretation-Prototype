@@ -25,7 +25,7 @@ COPY --from=builder /app/dist/senas-frontend /usr/share/nginx/html
 # COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Exponer puerto (opcional si usas docker run -p)
-EXPOSE 10000
+EXPOSE 80
 
 # Comando para correr nginx en primer plano
 CMD ["nginx", "-g", "daemon off;"]

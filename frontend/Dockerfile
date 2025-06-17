@@ -1,24 +1,21 @@
-# Etapa de construcción
+# Etapa 1: Build de la app
 FROM node:18 AS builder
+
 WORKDIR /app
-
-# Instala Angular CLI y dependencias
 COPY package*.json ./
-RUN npm install -g @angular/cli && \
-    npm ci --legacy-peer-deps
-
-# Copia código y construye
+RUN npm install
 COPY . .
-COPY tsconfig.app.json ./tsconfig.app.json
-COPY tsconfig.json ./tsconfig.json
+RUN npm run build
 
-# Build con memoria limitada
-ENV NODE_OPTIONS="--max-old-space-size=2048"
-RUN ng build --configuration production
-
-# Etapa de producción
+# Etapa 2: Servir con NGINX
 FROM nginx:alpine
-COPY --from=builder /app/dist/senas-frontend /usr/share/nginx/html
+
+# Copia el build al directorio que sirve NGINX
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copia configuración personalizada de nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
+

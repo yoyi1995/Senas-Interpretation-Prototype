@@ -11,10 +11,10 @@ export class DetectionService {
  
   
   public socket: Socket;
-private apiUrl = 'https://backen-flas.onrender.com/detect';  // URL del endpoint Flask
+#private apiUrl = 'https://backen-flas.onrender.com/detect';  // URL del endpoint Flask
   constructor(private http: HttpClient) {
     // URL del servidor Node.js (WebSocket)
-    this.socket = io('https://node-flas.onrender.com'); // conectar al WebSocket
+    #this.socket = io('https://node-flas.onrender.com'); // conectar al WebSocket
   }
 
   detectLetter(imageData: any): Observable<any> {

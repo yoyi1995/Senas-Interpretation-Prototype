@@ -34,6 +34,7 @@ export class VideoFeedComponent {
 
     // Escucha el evento de detección de letra desde el servidor
     this.socket.on('detected_letter', (letter: string) => {
+       console.log('🟢 Letra recibida del servidor:', letter);
       if (this.detectionLetter === letter) return; // Ya la tengo, no repetir
     this.mensaje = `Letra detectada: ${letter}`;
       this.detectionLetter = letter;
@@ -55,6 +56,9 @@ addLetterToWord(letter: string) {
   // Si la letra detectada es distinta a la última añadida, agregarla
   if (this.palabra.length === 0 || this.palabra.slice(-1) !== letter) {
     this.palabra += letter;
+      console.log('✏️ Letra agregada a palabra:', this.palabra);
+  }else {
+    console.log('⚠️ Letra repetida, no se agrega:', letter); // <-- OPCIONAL
   }
 
   // Mostrar brevemente la letra detectada

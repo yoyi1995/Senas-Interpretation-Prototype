@@ -46,7 +46,7 @@ export class VideoFeedComponent {
       // Establece un nuevo temporizador para agregar la letra después de un breve retraso
       this.detectionTimeout = setTimeout(() => {
         this.addLetterToWord(letter);
-      }, 500);
+      }, 298);
     });
   }
 
@@ -64,7 +64,7 @@ addLetterToWord(letter: string) {
   setTimeout(() => {
     this.mensaje = '';            // Borra el mensaje mostrado
     this.detectionLetter = '';    // Reinicia la detección para nuevas letras
-  }, 1500); // puedes ajustar el tiempo
+  }, 500); // puedes ajustar el tiempo
 }
 
 

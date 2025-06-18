@@ -34,6 +34,7 @@ export class VideoFeedComponent {
 
     // Escucha el evento de detección de letra desde el servidor
     this.socket.on('detected_letter', (letter: string) => {
+      if (this.detectionLetter === letter) return; // Ya la tengo, no repetir
     this.mensaje = `Letra detectada: ${letter}`;
       this.detectionLetter = letter;
 
@@ -45,20 +46,27 @@ export class VideoFeedComponent {
       // Establece un nuevo temporizador para agregar la letra después de un breve retraso
       this.detectionTimeout = setTimeout(() => {
         this.addLetterToWord(letter);
-      }, 298);
+      }, 500);
     });
   }
 
   // Agrega la letra detectada a la palabra en construcción
-  addLetterToWord(letter: string) {
-    // Verifica que la letra actual no sea la misma que la última registrada para evitar duplicados
-    if (this.palabra.length === 0 || this.palabra.slice(-1) !== letter) {
-      this.palabra += letter;
-    }
-  
-    this.mensaje = '';  // Limpia el mensaje mostrado
-    this.detectionLetter = '';  // Reinicia la letra detectada
+addLetterToWord(letter: string) {
+  // Si la letra detectada es distinta a la última añadida, agregarla
+  if (this.palabra.length === 0 || this.palabra.slice(-1) !== letter) {
+    this.palabra += letter;
   }
+
+  // Mostrar brevemente la letra detectada
+  this.mensaje = `Letra detectada: ${letter}`;
+
+  // Reinicia la letra detectada tras unos segundos para permitir una nueva predicción
+  setTimeout(() => {
+    this.mensaje = '';            // Borra el mensaje mostrado
+    this.detectionLetter = '';    // Reinicia la detección para nuevas letras
+  }, 1500); // puedes ajustar el tiempo
+}
+
 
   // Confirma manualmente la letra detectada y la agrega a la palabra
   confirmLetter() {
@@ -215,13 +223,14 @@ export class VideoFeedComponent {
   }
 
   // Envía los datos de las coordenadas de las manos al servidor
-  sendLandmarksToServer(landmarks: any) {
-    const landmarkData = landmarks.flatMap((landmark: any) => [
-      landmark.x,
-      landmark.y,
-      landmark.z
-    ]);
+sendLandmarksToServer(landmarks: any) {
+  const landmarkData = landmarks.flatMap((landmark: any) => [
+    landmark.x,
+    landmark.y,
+    landmark.z
+  ]);
 
-    this.socket.emit('hand_landmarks', landmarkData);
-  }
+  console.log('📡 Enviando landmarks:', landmarkData); // Verifica que cambian
+  this.socket.emit('hand_landmarks', landmarkData);
+}
 } 
